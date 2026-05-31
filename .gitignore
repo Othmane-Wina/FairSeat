@@ -35,3 +35,4 @@ build/
 # Local secret environment variables
 .env
 docker-infra/.env
+postgres_data/

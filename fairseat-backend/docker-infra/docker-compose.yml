@@ -17,6 +17,16 @@ services:
     networks:
       - fairseat-network
 
+  # High-Performance Caching & Locking Engine (Redis)
+  fairseat-redis:
+    image: redis:7.2-alpine
+    container_name: fairseat-redis-container
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes # Ensures data durability on restart
+    networks:
+      - fairseat-network
+
 volumes:
   postgres_data:
 
