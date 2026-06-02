@@ -14,6 +14,7 @@ import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -31,8 +32,13 @@ public class BookingService {
     private final BookingMapper bookingMapper;
     private final WebClient queueWebClient; // Injected our communication client
 
-    private static final long WAIT_TIME_SECONDS = 2;
-    private static final long LEASE_TIME_SECONDS = 10;
+    // Dynamic configuration injections
+    @Value("${fairseat.lock.wait-time-seconds}")
+    private long waitTimeSeconds;
+
+    @Value("${fairseat.lock.lease-time-seconds}")
+    private long leaseTimeSeconds;
+
     private static final double SEAT_FIXED_PRICE = 50.0;
 
     @Transactional
@@ -83,7 +89,7 @@ public class BookingService {
                 String lockKey = String.format("lock::game::%d::seat::%s", request.gameId(), seat);
                 RLock lock = redissonClient.getLock(lockKey);
 
-                boolean hasLock = lock.tryLock(WAIT_TIME_SECONDS, LEASE_TIME_SECONDS, TimeUnit.SECONDS);
+                boolean hasLock = lock.tryLock(waitTimeSeconds, leaseTimeSeconds, TimeUnit.SECONDS);
                 if (!hasLock) {
                     log.warn("❌ [Thread: {}] Failed to acquire lock for seat: {}.", Thread.currentThread().getName(), seat);
                     allLocksAcquired = false;
