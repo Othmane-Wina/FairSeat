@@ -34,6 +34,12 @@ public class BookingController {
                     "error", "Seat Allocation Conflict",
                     "reason", e.getMessage()
             ));
+        } catch (SecurityException e) {
+            // Catches invalid waiting room bypass attempts
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                    "error", "Queue Clearance Security Violation",
+                    "reason", e.getMessage()
+            ));
         }
     }
 }
