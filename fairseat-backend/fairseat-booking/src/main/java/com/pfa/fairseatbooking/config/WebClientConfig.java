@@ -10,7 +10,14 @@ public class WebClientConfig {
     @Bean
     public WebClient queueWebClient() {
         return WebClient.builder()
-                .baseUrl("http://localhost:8084/v1/queue") // Queue Microservice port
+                .baseUrl("http://localhost:8084/v1/queue")
+                .build();
+    }
+
+    @Bean
+    public WebClient discoveryWebClient() {
+        return WebClient.builder()
+                .baseUrl("http://localhost:8082/v1/games")
                 .build();
     }
 }

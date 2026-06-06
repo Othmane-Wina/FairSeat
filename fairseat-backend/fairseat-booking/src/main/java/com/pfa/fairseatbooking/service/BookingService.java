@@ -5,16 +5,17 @@ import com.pfa.fairseatbooking.domain.BookingItem;
 import com.pfa.fairseatbooking.domain.BookingStatus;
 import com.pfa.fairseatbooking.dto.BookingRequestDTO;
 import com.pfa.fairseatbooking.dto.BookingResponseDTO;
+import com.pfa.fairseatbooking.dto.GameDiscoveryResponseDTO;
 import com.pfa.fairseatbooking.mapper.BookingMapper;
 import com.pfa.fairseatbooking.repository.BookingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -30,16 +31,14 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final RedissonClient redissonClient;
     private final BookingMapper bookingMapper;
-    private final WebClient queueWebClient; // Injected our communication client
+    private final WebClient queueWebClient;
+    private final WebClient discoveryWebClient;
 
-    // Dynamic configuration injections
     @Value("${fairseat.lock.wait-time-seconds}")
     private long waitTimeSeconds;
 
     @Value("${fairseat.lock.lease-time-seconds}")
     private long leaseTimeSeconds;
-
-    private static final double SEAT_FIXED_PRICE = 50.0;
 
     @Transactional
     public BookingResponseDTO initiateBooking(BookingRequestDTO request) {
@@ -51,7 +50,7 @@ public class BookingService {
             throw new IllegalArgumentException("Business Guardrail Violation: Maximum permitted tickets per booking order is 4.");
         }
 
-        // 2. CRITICAL NEW TASK: Inter-Service Security Handshake (Verify Gate Pass)
+        // 2. Inter-Service Security Handshake (Verify Waiting Room Gate Pass)
         log.info("[Thread: {}] Sending background verification check to fairseat-queue for User [{}]",
                 Thread.currentThread().getName(), request.userId());
 
@@ -65,7 +64,7 @@ public class BookingService {
                             .build())
                     .retrieve()
                     .bodyToMono(Map.class)
-                    .block(); // Safe to use blocking extraction because Project Loom handles virtual execution fluidly
+                    .block();
 
             if (queueResponse == null || !"RELEASED".equals(queueResponse.get("status"))) {
                 log.warn("🚨 Security Handshake Failure! User [{}] attempted checkout access without an active RELEASED token.", request.userId());
@@ -80,7 +79,32 @@ public class BookingService {
             throw new IllegalStateException("Verification infrastructure currently unreachable. Please try again shortly.");
         }
 
-        // 3. LOCKS ACQUISITION CYCLE
+        // 3. Fetch Dynamic Base Price from Fairseat-Discovery Catalog Database
+        log.info("[Thread: {}] Fetching active game catalog information from fairseat-discovery for Game ID #{}",
+                Thread.currentThread().getName(), request.gameId());
+
+        final double seatPrice;
+        try {
+            GameDiscoveryResponseDTO gameCatalog = discoveryWebClient.get()
+                    .uri("/{id}", request.gameId())
+                    .retrieve()
+                    .bodyToMono(GameDiscoveryResponseDTO.class)
+                    .block();
+
+            if (gameCatalog == null || gameCatalog.basePrice() == null) {
+                throw new IllegalArgumentException("The requested game event could not be found or has no active pricing configured.");
+            }
+
+            seatPrice = gameCatalog.basePrice();
+            log.info("🎯 Dynamic price lookup success! Base Price for Game #{} is {} MAD.", request.gameId(), seatPrice);
+
+        } catch (Exception e) {
+            if (e instanceof IllegalArgumentException) throw e;
+            log.error("Network communication failure to discovery microservice", e);
+            throw new IllegalStateException("Catalog validation infrastructure currently unreachable. Please try again shortly.");
+        }
+
+        // 4. LOCKS ACQUISITION CYCLE
         List<RLock> acquiredLocks = new ArrayList<>();
         boolean allLocksAcquired = true;
 
@@ -103,8 +127,8 @@ public class BookingService {
                 throw new IllegalStateException("One or more selected seats are no longer available. Please choose different seats.");
             }
 
-            // 4. WRITE TARGET TO POSTGRESQL
-            double totalAmount = request.seatNumbers().size() * SEAT_FIXED_PRICE;
+            // 5. WRITE TARGET TO POSTGRESQL
+            double totalAmount = request.seatNumbers().size() * seatPrice;
             LocalDateTime now = LocalDateTime.now();
 
             Booking booking = Booking.builder()
@@ -120,7 +144,7 @@ public class BookingService {
                     .map(seat -> BookingItem.builder()
                             .booking(booking)
                             .seatNumber(seat)
-                            .price(SEAT_FIXED_PRICE)
+                            .price(seatPrice)
                             .build())
                     .toList();
 
@@ -129,6 +153,7 @@ public class BookingService {
             Booking savedBooking = bookingRepository.save(booking);
             log.info("💾 Saved reservation sequence #{} safely into booking_db.", savedBooking.getId());
 
+            // 6. Atomically consume the one-time waiting room pass over the network
             log.info("[Thread: {}] Order finalized. Commencing one-time clearance token consumption sequence...", Thread.currentThread().getName());
             try {
                 queueWebClient.delete()
@@ -143,7 +168,6 @@ public class BookingService {
                 log.info("🎯 Successfully consumed user [{}] waiting-room clearance ticket.", request.userId());
             } catch (Exception e) {
                 log.error("Failed to invalidate waiting room token over network wrapper channels", e);
-                // In production, you could push a failure message to a dead-letter queue here
             }
 
             return bookingMapper.toResponseDTO(savedBooking);
