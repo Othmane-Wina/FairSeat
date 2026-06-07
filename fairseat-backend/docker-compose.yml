@@ -1,0 +1,240 @@
+#version: '3.8'
+#
+#services:
+#  # Multi-Database PostgreSQL Service for FairSeat
+#  fairseat-postgres:
+#    image: postgres:16-alpine
+#    container_name: fairseat-postgres-container
+#    environment:
+#      POSTGRES_USER: ${DB_USERNAME}
+#      POSTGRES_PASSWORD: ${DB_PASSWORD}
+#      POSTGRES_DB: fairseat_default_db
+#    ports:
+#      - "5432:5432"
+#    volumes:
+#      - postgres_data:/var/lib/postgresql/data
+#      - ./init-scripts:/docker-entrypoint-initdb.d
+#    networks:
+#      - fairseat-network
+#
+#  # High-Performance Caching & Locking Engine (Redis)
+#  fairseat-redis:
+#    image: redis:7.2-alpine
+#    container_name: fairseat-redis-container
+#    ports:
+#      - "6379:6379"
+#    command: redis-server --appendonly yes # Ensures data durability on restart
+#    networks:
+#      - fairseat-network
+#
+#volumes:
+#  postgres_data:
+#
+#networks:
+#  fairseat-network:
+#    driver: bridge
+
+
+version: "3.9"
+
+# Réseau partagé — tous les services se parlent via ce réseau
+networks:
+  fairseat-net:
+    driver: bridge
+
+# Volumes nommés — les données persistent entre les redémarrages
+volumes:
+  identity_db_data:
+  discovery_db_data:
+  booking_db_data:
+  marketplace_db_data:
+  ticket_db_data:
+  redis_data:
+  kafka_data:
+
+services:
+
+  # ─────────────────────────────────────────
+  # BASE DE DONNÉES 1 — Identity Service
+  # ─────────────────────────────────────────
+  identity_db:
+    image: postgres:16-alpine
+    container_name: identity_db
+    environment:
+      POSTGRES_DB: identity_db
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"            # port local:port conteneur
+    volumes:
+      - identity_db_data:/var/lib/postgresql/data
+      - ./db/init/01_identity.sql:/docker-entrypoint-initdb.d/01_identity.sql
+    networks:
+      - fairseat-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d identity_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────
+  # BASE DE DONNÉES 2 — Discovery Service
+  # ─────────────────────────────────────────
+  discovery_db:
+    image: postgres:16-alpine
+    container_name: discovery_db
+    environment:
+      POSTGRES_DB: discovery_db
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5433:5432"            # port LOCAL différent (5433) !
+    volumes:
+      - discovery_db_data:/var/lib/postgresql/data
+      - ./db/init/02_discovery.sql:/docker-entrypoint-initdb.d/02_discovery.sql
+    networks:
+      - fairseat-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d discovery_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────
+  # BASE DE DONNÉES 3 — Booking Service
+  # ─────────────────────────────────────────
+  booking_db:
+    image: postgres:16-alpine
+    container_name: booking_db
+    environment:
+      POSTGRES_DB: booking_db
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5434:5432"
+    volumes:
+      - booking_db_data:/var/lib/postgresql/data
+      - ./db/init/03_booking.sql:/docker-entrypoint-initdb.d/03_booking.sql
+    networks:
+      - fairseat-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d booking_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────
+  # BASE DE DONNÉES 4 — Marketplace Service
+  # ─────────────────────────────────────────
+  marketplace_db:
+    image: postgres:16-alpine
+    container_name: marketplace_db
+    environment:
+      POSTGRES_DB: marketplace_db
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5435:5432"
+    volumes:
+      - marketplace_db_data:/var/lib/postgresql/data
+      - ./db/init/04_marketplace.sql:/docker-entrypoint-initdb.d/04_marketplace.sql
+    networks:
+      - fairseat-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d marketplace_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────
+  # BASE DE DONNÉES 5 — Ticket Service
+  # ─────────────────────────────────────────
+  ticket_db:
+    image: postgres:16-alpine
+    container_name: ticket_db
+    environment:
+      POSTGRES_DB: ticket_db
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5436:5432"
+    volumes:
+      - ticket_db_data:/var/lib/postgresql/data
+      - ./db/init/05_ticket.sql:/docker-entrypoint-initdb.d/05_ticket.sql
+    networks:
+      - fairseat-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d ticket_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────
+  # REDIS — Cache, Queue, Sessions
+  # ─────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    command: redis-server --save 60 1 --databases 4
+    # --save 60 1 : sauvegarde sur disque toutes les 60s si au moins 1 changement
+    # --databases 4 : 4 bases logiques (DB0=queue, DB1=sessions, DB2=cache, DB3=locks)
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - fairseat-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "PING"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────
+  # KAFKA — Message Broker (mode KRaft, sans Zookeeper)
+  # ─────────────────────────────────────────
+  kafka:
+    image: apache/kafka:4.1.0
+    container_name: kafka
+    environment:
+      # Mode KRaft = Kafka sans Zookeeper (plus simple pour le dev)
+      KAFKA_CFG_NODE_ID: 0
+      KAFKA_CFG_PROCESS_ROLES: controller,broker
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 0@kafka:9093
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka_data:/bitnami/kafka
+    networks:
+      - fairseat-net
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics.sh --list --bootstrap-server localhost:9092 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+  # ─────────────────────────────────────────
+  # KEYCLOAK — Identity Provider
+  # ─────────────────────────────────────────
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.1
+    container_name: keycloak
+    command: start-dev
+    # start-dev = mode développement, pas besoin de certificat SSL
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_HTTP_PORT: 8080
+    ports:
+      - "8080:8080"
+    networks:
+      - fairseat-net
+    depends_on:
+      identity_db:
+        condition: service_healthy
