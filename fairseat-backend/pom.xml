@@ -34,5 +34,6 @@
 		<module>fairseat-discovery</module>
 		<module>fairseat-booking</module>
 		<module>fairseat-queue</module>
+		<module>fairseat-ticket</module>
 	</modules>
 </project>

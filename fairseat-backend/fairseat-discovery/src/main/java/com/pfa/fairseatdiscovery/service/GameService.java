@@ -58,4 +58,15 @@ public class GameService {
 
         return gameDTOs;
     }
+
+    public GameResponseDTO getGameById(Long id) {
+        log.info("🔍 Querying catalog for Game ID #{} from PostgreSQL...", id);
+
+        // Find the game entity or throw a clean runtime exception if it's missing
+        com.pfa.fairseatdiscovery.domain.Game game = gameRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Game event not found with ID: " + id));
+
+        // Map the internal entity into your clean GameResponseDTO template frame
+        return gameMapper.toResponseDTO(game);
+    }
 }

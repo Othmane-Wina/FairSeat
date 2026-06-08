@@ -5,6 +5,7 @@ import com.pfa.fairseatdiscovery.service.GameService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable; // Make sure this import is present
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -20,5 +21,11 @@ public class GameController {
     @GetMapping("/active")
     public ResponseEntity<List<GameResponseDTO>> getActiveGamesCatalog() {
         return ResponseEntity.ok(gameService.getActiveGames());
+    }
+
+    // ADD THIS NEW ENDPOINT HERE:
+    @GetMapping("/{id}")
+    public ResponseEntity<GameResponseDTO> getGameById(@PathVariable Long id) {
+        return ResponseEntity.ok(gameService.getGameById(id));
     }
 }
