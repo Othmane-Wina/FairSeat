@@ -3,6 +3,7 @@ package com.pfa.fairseatticket.service;
 import com.pfa.fairseatticket.domain.Ticket;
 import com.pfa.fairseatticket.domain.TicketStatus;
 import com.pfa.fairseatticket.event.BookingConfirmedEvent;
+import com.pfa.fairseatticket.event.TicketTransferredEvent;
 import com.pfa.fairseatticket.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +48,36 @@ public class TicketEventConsumer {
 
         } catch (Exception e) {
             log.error("❌ Failed to process ticket generation for Booking ID: {}", event.bookingId(), e);
+        }
+    }
+
+    @Transactional
+    @KafkaListener(topics = "ticket-transfers", groupId = "ticket-generation-group")
+    public void consumeTicketTransfer(TicketTransferredEvent event) {
+        log.info("🔄 [KAFKA CONSUMER WAKE-UP] Received Ticket Transfer Event from Marketplace!");
+        log.info("Processing transfer for Ticket [{}] from User [{}] to User [{}]",
+                event.ticketId(), event.previousOwnerId(), event.newOwnerId());
+
+        try {
+            // 1. Fetch the physical ticket from the database
+            Ticket ticket = ticketRepository.findById(event.ticketId())
+                    .orElseThrow(() -> new IllegalArgumentException("Ticket not found in database"));
+
+            // 2. Secondary Security Guardrail: Ensure the seller actually owned the ticket
+            if (!ticket.getUserId().equals(event.previousOwnerId())) {
+                throw new SecurityException("Transfer failed: Seller does not match current ticket owner!");
+            }
+
+            // 3. Transfer Ownership
+            ticket.setUserId(event.newOwnerId());
+            ticketRepository.save(ticket);
+
+            log.info("✅ Successfully transferred ownership of Ticket [{}] to new Buyer [{}]",
+                    ticket.getId(), event.newOwnerId());
+            log.info("---------------------------------------------------");
+
+        } catch (Exception e) {
+            log.error("❌ Failed to process ticket transfer for Ticket ID: {}", event.ticketId(), e);
         }
     }
 }
