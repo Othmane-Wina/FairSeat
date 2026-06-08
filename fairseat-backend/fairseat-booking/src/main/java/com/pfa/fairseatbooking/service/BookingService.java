@@ -3,9 +3,8 @@ package com.pfa.fairseatbooking.service;
 import com.pfa.fairseatbooking.domain.Booking;
 import com.pfa.fairseatbooking.domain.BookingItem;
 import com.pfa.fairseatbooking.domain.BookingStatus;
-import com.pfa.fairseatbooking.dto.BookingRequestDTO;
-import com.pfa.fairseatbooking.dto.BookingResponseDTO;
-import com.pfa.fairseatbooking.dto.GameDiscoveryResponseDTO;
+import com.pfa.fairseatbooking.domain.PaymentStatus;
+import com.pfa.fairseatbooking.dto.*;
 import com.pfa.fairseatbooking.event.BookingConfirmedEvent;
 import com.pfa.fairseatbooking.mapper.BookingMapper;
 import com.pfa.fairseatbooking.repository.BookingRepository;
@@ -34,6 +33,7 @@ public class BookingService {
     private final RedissonClient redissonClient;
     private final BookingMapper bookingMapper;
     private final WebClient queueWebClient;
+    private final WebClient paymentWebClient;
     private final WebClient discoveryWebClient;
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
@@ -52,10 +52,21 @@ public class BookingService {
 
         List<RLock> acquiredLocks = new ArrayList<>();
         try {
+            // 1. Lock the seats
             acquiredLocks = acquireSeatLocks(request.gameId(), request.seatNumbers());
 
+            // 2. Save to DB FIRST to generate the Primary Key (Status defaults to PENDING)
             Booking savedBooking = saveBookingTransaction(request, seatPrice);
-            publishBookingEvent(savedBooking); // Broadcast the event to the cluster
+
+            // 3. CHARGE THE CREDIT CARD using the real generated ID
+            processPayment(request, seatPrice, savedBooking.getId());
+
+            // 4. If payment succeeds, update status to CONFIRMED
+            // (Because we are in a @Transactional method, Hibernate will automatically UPDATE the database!)
+            savedBooking.setStatus(BookingStatus.CONFIRMED);
+
+            // 5. Broadcast to Kafka and consume queue token
+            publishBookingEvent(savedBooking);
             consumeQueueClearancePass(request.userId(), request.gameId());
 
             return bookingMapper.toResponseDTO(savedBooking);
@@ -205,6 +216,39 @@ public class BookingService {
             log.info("🎯 Successfully consumed user [{}] waiting-room clearance ticket.", userId);
         } catch (Exception e) {
             log.error("Failed to invalidate waiting room token over network wrapper channels", e);
+        }
+    }
+
+    private void processPayment(BookingRequestDTO request, double seatPrice, Long bookingId) {
+        log.info("[Thread: {}] Initiating Payment Gateway Handshake for User [{}]",
+                Thread.currentThread().getName(), request.userId());
+
+        double totalAmount = request.seatNumbers().size() * seatPrice;
+
+        PaymentRequestDTO paymentRequest = new PaymentRequestDTO(
+                bookingId,
+                request.userId(),
+                totalAmount,
+                request.idempotencyKey()
+        );
+
+        try {
+            PaymentResponseDTO response = paymentWebClient.post()
+                    .uri("/charge")
+                    .bodyValue(paymentRequest)
+                    .retrieve()
+                    .bodyToMono(PaymentResponseDTO.class)
+                    .block();
+
+            if (response == null || response.status() != PaymentStatus.COMPLETED) {
+                throw new IllegalStateException("Payment declined by the gateway.");
+            }
+
+            log.info("💳 Payment Handshake Complete! Transaction ID: {}", response.transactionId());
+
+        } catch (Exception e) {
+            log.error("Payment processing failed", e);
+            throw new IllegalStateException("Payment failed: " + e.getMessage());
         }
     }
 

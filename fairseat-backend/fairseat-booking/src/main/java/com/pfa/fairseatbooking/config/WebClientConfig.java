@@ -20,4 +20,11 @@ public class WebClientConfig {
                 .baseUrl("http://localhost:8082/v1/games")
                 .build();
     }
+
+    @Bean
+    public WebClient paymentWebClient() {
+        return WebClient.builder()
+                .baseUrl("http://localhost:8087/v1/payments")
+                .build();
+    }
 }

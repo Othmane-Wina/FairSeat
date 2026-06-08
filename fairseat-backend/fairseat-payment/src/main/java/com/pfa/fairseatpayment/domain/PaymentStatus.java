@@ -1,0 +1,8 @@
+package com.pfa.fairseatpayment.domain;
+
+public enum PaymentStatus {
+    PENDING,
+    COMPLETED,
+    FAILED,
+    REFUNDED
+}

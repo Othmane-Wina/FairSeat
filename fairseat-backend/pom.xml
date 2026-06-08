@@ -35,5 +35,7 @@
 		<module>fairseat-booking</module>
 		<module>fairseat-queue</module>
 		<module>fairseat-ticket</module>
+		<module>fairseat-marketplace</module>
+		<module>fairseat-payment</module>
 	</modules>
 </project>
