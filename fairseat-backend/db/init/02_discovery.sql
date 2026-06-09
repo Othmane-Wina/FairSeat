@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS venues (
-                                      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
     city VARCHAR(100) NOT NULL,
     capacity INT NOT NULL

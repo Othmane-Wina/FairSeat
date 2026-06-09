@@ -1,0 +1,65 @@
+server:
+  port: 8090
+
+spring:
+  application:
+    name: fairseat-gateway
+  main:
+    lazy-initialization: true
+
+  cloud:
+    gateway:
+      routes:
+
+        - id: identity-service
+          uri: ${IDENTITY_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/v1/identity/**
+          filters:
+            - StripPrefix=0
+
+        - id: queue-service
+          uri: ${QUEUE_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/v1/queue/**
+          filters:
+            - StripPrefix=0
+
+        - id: discovery-service
+          uri: ${DISCOVERY_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/v1/games/**
+          filters:
+            - StripPrefix=0
+
+        - id: booking-service
+          uri: ${BOOKING_SERVICE_URL:http://localhost:8084}
+          predicates:
+            - Path=/v1/bookings/**
+          filters:
+            - StripPrefix=0
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KEYCLOAK_URI:http://keycloak:8080}/realms/fairseat/protocol/openid-connect/certs
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.security: DEBUG
