@@ -86,8 +86,29 @@ public class BookingService {
         if (request.seatNumbers() == null || request.seatNumbers().isEmpty()) {
             throw new IllegalArgumentException("Booking must include at least one seat reservation selection.");
         }
-        if (request.seatNumbers().size() > 4) {
+
+        int requestedSeats = request.seatNumbers().size();
+
+        // 1. Single Order Guardrail
+        if (requestedSeats > 4) {
             throw new IllegalArgumentException("Business Guardrail Violation: Maximum permitted tickets per booking order is 4.");
+        }
+
+        // 2. Global Account Guardrail (Across all previous orders)
+        Long alreadyBookedSeats = bookingRepository.countBookedSeatsByUserAndGame(
+                request.userId(),
+                request.gameId(),
+                List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED)
+        );
+
+        long currentCount = alreadyBookedSeats != null ? alreadyBookedSeats : 0L;
+
+        if (currentCount + requestedSeats > 4) {
+            throw new IllegalArgumentException(String.format(
+                    "Business Guardrail Violation: You already have %d tickets for this game. " +
+                            "You are attempting to buy %d more, but the maximum allowed is 4 total tickets per account.",
+                    currentCount, requestedSeats
+            ));
         }
     }
 
