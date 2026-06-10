@@ -8,22 +8,15 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 @Configuration
 public class RedisConfig {
-
     @Bean
-    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
-        RedisTemplate<String, Object> template = new RedisTemplate<>();
-        template.setConnectionFactory(connectionFactory);
-
-        // Since queue operations handle plain string identifiers (usernames/IDs),
-        // using String serializers prevents unnecessary Jackson class-typing clutter.
-        StringRedisSerializer stringSerializer = new StringRedisSerializer();
-
-        template.setKeySerializer(stringSerializer);
-        template.setHashKeySerializer(stringSerializer);
-        template.setValueSerializer(stringSerializer);
-        template.setHashValueSerializer(stringSerializer);
-
-        template.afterPropertiesSet();
-        return template;
+    public RedisTemplate<String, String> redisTemplate(RedisConnectionFactory factory) {
+        RedisTemplate<String, String> tpl = new RedisTemplate<>();
+        tpl.setConnectionFactory(factory);
+        StringRedisSerializer ser = new StringRedisSerializer();
+        tpl.setKeySerializer(ser);
+        tpl.setValueSerializer(ser);
+        tpl.setHashKeySerializer(ser);
+        tpl.setHashValueSerializer(ser);
+        return tpl;
     }
 }

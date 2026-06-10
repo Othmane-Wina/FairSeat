@@ -19,31 +19,51 @@ spring:
             - StripPrefix=0
 
         - id: queue-service
-          uri: ${QUEUE_SERVICE_URL:http://localhost:8082}
+          uri: ${QUEUE_SERVICE_URL:http://localhost:8084}
           predicates:
             - Path=/v1/queue/**
           filters:
             - StripPrefix=0
 
         - id: discovery-service
-          uri: ${DISCOVERY_SERVICE_URL:http://localhost:8083}
+          uri: ${DISCOVERY_SERVICE_URL:http://localhost:8082}
           predicates:
             - Path=/v1/games/**
           filters:
             - StripPrefix=0
 
         - id: booking-service
-          uri: ${BOOKING_SERVICE_URL:http://localhost:8084}
+          uri: ${BOOKING_SERVICE_URL:http://localhost:8083}
           predicates:
             - Path=/v1/bookings/**
           filters:
             - StripPrefix=0
 
+        - id: ticket-service
+          uri: ${TICKET_SERVICE_URL:http://localhost:8085}
+          predicates:
+            - Path=/v1/tickets/**
+          filters:
+            - StripPrefix=0
+
+        - id: marketplace-service
+          uri: ${MARKETPLACE_SERVICE_URL:http://localhost:8086}
+          predicates:
+            - Path=/v1/marketplace/**
+          filters:
+            - StripPrefix=0
+
+        - id: identity-dev-otp
+          uri: ${IDENTITY_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/v1/identity/dev/**
+          # Route publique — pas de JWT requis pour les tests K6
+
   security:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: ${KEYCLOAK_URI:http://keycloak:8080}/realms/fairseat/protocol/openid-connect/certs
+          jwk-set-uri: ${KEYCLOAK_URI:http://localhost:8080}/realms/fairseat/protocol/openid-connect/certs
 
   data:
     redis:
@@ -57,9 +77,9 @@ management:
         include: health,info
   endpoint:
     health:
-      show-details: always
+      show-details: when_authorized
 
 logging:
   level:
-    org.springframework.cloud.gateway: DEBUG
-    org.springframework.security: DEBUG
+    org.springframework.cloud.gateway: INFO
+    org.springframework.security: INFO

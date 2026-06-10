@@ -2,6 +2,7 @@ package com.pfa.fairseatbooking.dto;
 
 import com.pfa.fairseatbooking.domain.GameStatus;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public record GameDiscoveryResponseDTO(

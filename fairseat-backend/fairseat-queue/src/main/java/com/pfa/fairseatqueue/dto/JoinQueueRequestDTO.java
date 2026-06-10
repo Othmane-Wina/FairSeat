@@ -1,6 +1,8 @@
 package com.pfa.fairseatqueue.dto;
 
+import jakarta.validation.constraints.NotNull;
+
 public record JoinQueueRequestDTO(
-        String userId,
+        @NotNull(message = "Game ID is required")
         Long gameId
 ) {}

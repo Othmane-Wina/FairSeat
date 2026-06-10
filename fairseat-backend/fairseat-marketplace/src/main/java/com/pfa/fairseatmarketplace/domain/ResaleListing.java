@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -30,7 +31,7 @@ public class ResaleListing {
     private Long gameId;
 
     @Column(nullable = false)
-    private Double askingPrice;
+    private BigDecimal askingPrice;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -38,5 +39,8 @@ public class ResaleListing {
 
     @CreationTimestamp
     private LocalDateTime listedAt;
+
+    @Version
+    private Long version;
 
 }

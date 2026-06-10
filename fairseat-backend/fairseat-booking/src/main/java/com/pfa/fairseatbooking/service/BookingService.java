@@ -64,6 +64,8 @@ public class BookingService {
             Thread.currentThread().interrupt();
             releaseAllLocks(acquiredLocks);
             throw new RuntimeException("Thread transaction lifecycle interrupted unexpectedly", e);
+        } finally {
+            releaseAllLocks(acquiredLocks);
         }
     }
 
@@ -89,8 +91,8 @@ public class BookingService {
                     .uri(uriBuilder -> uriBuilder
                             .path("/status")
                             .queryParam("gameId", gameId)
-                            .queryParam("userId", userId)
                             .build())
+                    .header("X-User-Id", userId)
                     .retrieve()
                     .bodyToMono(Map.class)
                     .block();
@@ -197,8 +199,8 @@ public class BookingService {
                     .uri(uriBuilder -> uriBuilder
                             .path("/clearance/consume")
                             .queryParam("gameId", gameId)
-                            .queryParam("userId", userId)
                             .build())
+                    .header("X-User-Id", userId)
                     .retrieve()
                     .toBodilessEntity()
                     .block();

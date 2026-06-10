@@ -18,7 +18,9 @@ public class TicketController {
     private final TicketService ticketService;
 
     @GetMapping("/{ticketId}/secure-code")
-    public ResponseEntity<?> getSecureTicketCode(@PathVariable UUID ticketId, @RequestParam String userId) {
+    public ResponseEntity<?> getSecureTicketCode(
+            @PathVariable UUID ticketId,
+            @RequestHeader("X-User-Id") String userId) {
         try {
             // Hand off to the business layer
             TicketCodeResponseDTO responsePayload = ticketService.generateSecurePayload(ticketId, userId);

@@ -1,8 +1,8 @@
 package com.fairseat.gateway.config;
 
-import io.netty.handler.codec.http.HttpMethod;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
@@ -19,10 +19,11 @@ public class SecurityConfig {
             .authorizeExchange(auth -> auth
 
                     // Routes publiques — pas de JWT requis
-                    .pathMatchers(String.valueOf(HttpMethod.GET), "/v1/games/**").permitAll()
-                    .pathMatchers(String.valueOf(HttpMethod.POST), "/v1/identity/verify").permitAll()
-                    .pathMatchers(String.valueOf(HttpMethod.POST), "/v1/identity/confirm-otp").permitAll()
+                    .pathMatchers(HttpMethod.GET, "/v1/games/**").permitAll()
+                    .pathMatchers(HttpMethod.POST, "/v1/identity/verify").permitAll()
+                    .pathMatchers(HttpMethod.POST, "/v1/identity/confirm-otp").permitAll()
                     .pathMatchers("/actuator/**").permitAll()
+                    .pathMatchers("/v1/identity/dev/**").permitAll()  // dev only
                     // Tout le reste nécessite un JWT valide
 
                     .anyExchange().authenticated()

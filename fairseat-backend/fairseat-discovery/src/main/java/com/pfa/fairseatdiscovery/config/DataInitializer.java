@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -47,7 +48,7 @@ public class DataInitializer implements CommandLineRunner {
                     .description("The legendary Casablanca Derby.")
                     .eventDateTime(LocalDateTime.now().plusDays(7))
                     .stadium(mohammedV)
-                    .basePrice(50.0)
+                    .basePrice(new BigDecimal("50.00"))
                     .status(GameStatus.SCHEDULED) // Updated here
                     .build();
 
@@ -56,7 +57,7 @@ public class DataInitializer implements CommandLineRunner {
                     .description("Regional classic match-up.")
                     .eventDateTime(LocalDateTime.now().plusDays(10))
                     .stadium(moulayAbdallah)
-                    .basePrice(40.0)
+                    .basePrice(new BigDecimal("40.00"))
                     .status(GameStatus.SCHEDULED) // Updated here
                     .build();
 

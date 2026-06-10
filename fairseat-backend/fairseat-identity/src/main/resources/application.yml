@@ -1,0 +1,21 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: fairseat-identity
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}   # "localhost" en dev, "redis" dans Docker
+      port: 6379
+
+keycloak:
+  token-uri: ${KEYCLOAK_URI:http://localhost:8080}/realms/fairseat/protocol/openid-connect/token
+  client-id: gateway-client
+  client-secret: ${KEYCLOAK_CLIENT_SECRET:your-secret-here}
+  mock-password: fairseat-mock   # mot de passe fixe pour tous les users de démo
+
+logging:
+  level:
+    com.pfa.fairseatidentity: DEBUG   # voir tous les logs de votre service
