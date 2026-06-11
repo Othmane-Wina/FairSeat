@@ -36,6 +36,10 @@ public class UserIdHeaderFilter implements GlobalFilter, Ordered {
               // On ajoute X-User-Id dans les headers vers les microservices aval
               ServerHttpRequest mutatedRequest = exchange.getRequest()
                       .mutate()
+                      .headers(headers -> {
+                        headers.remove("X-User-Id");
+                        headers.remove("X-User-Email");
+                      })
                       .header("X-User-Id", userId)
                       .header("X-User-Email", jwt.getClaimAsString("email"))
                       .build();

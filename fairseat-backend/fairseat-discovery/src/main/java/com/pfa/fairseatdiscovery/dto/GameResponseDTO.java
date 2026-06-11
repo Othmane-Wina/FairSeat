@@ -2,6 +2,7 @@ package com.pfa.fairseatdiscovery.dto;
 
 import com.pfa.fairseatdiscovery.domain.GameStatus;
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public record GameResponseDTO(
@@ -10,6 +11,6 @@ public record GameResponseDTO(
         String description,
         LocalDateTime eventDateTime,
         StadiumDTO stadium,
-        Double basePrice,
+        BigDecimal basePrice,
         GameStatus status
 ) implements Serializable {}

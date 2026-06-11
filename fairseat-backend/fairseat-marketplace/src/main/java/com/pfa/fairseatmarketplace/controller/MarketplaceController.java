@@ -22,11 +22,12 @@ public class MarketplaceController {
 
     @PostMapping("/listings")
     public ResponseEntity<ResaleListingResponseDTO> createResaleListing(
+            @RequestHeader("X-User-Id") String sellerId,
             @Valid @RequestBody CreateListingRequestDTO request) {
 
         ResaleListingResponseDTO response = marketplaceService.createListing(
                 request.ticketId(),
-                request.sellerId(),
+                sellerId,
                 request.gameId(),
                 request.price()
         );
@@ -36,9 +37,10 @@ public class MarketplaceController {
     @PostMapping("/listings/{listingId}/fast-track")
     public ResponseEntity<Map<String, String>> executeFastTrackPurchase(
             @PathVariable UUID listingId,
+            @RequestHeader("X-User-Id") String buyerId,
             @Valid @RequestBody FastTrackPurchaseRequestDTO request) {
 
-        marketplaceService.fastTrackPurchase(listingId, request.buyerId());
+        marketplaceService.fastTrackPurchase(listingId, buyerId);
         return ResponseEntity.ok(Map.of("message", "Fast-Track purchase successful! Ownership transferred."));
     }
 }

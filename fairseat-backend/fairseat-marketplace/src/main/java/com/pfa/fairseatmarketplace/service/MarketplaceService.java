@@ -11,6 +11,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 @Service
@@ -23,7 +24,7 @@ public class MarketplaceService {
 
     // 1. Seller lists their ticket
     @Transactional
-    public ResaleListingResponseDTO createListing(UUID ticketId, String sellerId, Long gameId, Double price) {
+    public ResaleListingResponseDTO createListing(UUID ticketId, String sellerId, Long gameId, BigDecimal price) {
         log.info("Creating new resale listing for Ticket [{}] by Seller [{}]", ticketId, sellerId);
 
         ResaleListing listing = ResaleListing.builder()

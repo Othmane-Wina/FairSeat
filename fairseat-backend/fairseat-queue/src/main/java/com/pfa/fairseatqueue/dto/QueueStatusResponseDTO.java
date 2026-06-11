@@ -6,6 +6,6 @@ public record QueueStatusResponseDTO(
         String userId,
         Long gameId,
         Long position,
-        QueueStatus status,  // Updated from String to QueueStatus enum
-        String accessTicket
+        QueueStatus status,
+        String admissionToken
 ) {}

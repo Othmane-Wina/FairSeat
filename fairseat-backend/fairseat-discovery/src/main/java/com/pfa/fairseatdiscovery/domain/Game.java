@@ -2,6 +2,7 @@ package com.pfa.fairseatdiscovery.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -30,8 +31,8 @@ public class Game {
     @JoinColumn(name = "stadium_id", nullable = false)
     private Stadium stadium;
 
-    @Column(nullable = false)
-    private Double basePrice;
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal basePrice;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
