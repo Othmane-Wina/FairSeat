@@ -3,7 +3,6 @@ package com.pfa.fairseatbooking.controller;
 import com.pfa.fairseatbooking.dto.BookingRequestDTO;
 import com.pfa.fairseatbooking.dto.BookingResponseDTO;
 import com.pfa.fairseatbooking.service.BookingService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

@@ -49,7 +49,8 @@ public class QueueService {
             return new QueueStatusResponseDTO(
                     userId, gameId, -1L, QueueStatus.NOT_IN_QUEUE, null);
         }
-
+        log.info("Queue status check: userId={} gameId={} admissionKey={} token={}",
+                userId, gameId, admissionKey(gameId, userId), admissionToken);
         // rank est 0-indexed, on expose position 1-indexed
         return new QueueStatusResponseDTO(
                 userId, gameId, rank + 1, QueueStatus.WAITING, null);
@@ -66,62 +67,7 @@ public class QueueService {
     // BUG FIX 3 (suite): méthode package-visible pour que QueueReleaseScheduler
     // utilise exactement la même clé et qu'il n'y ait plus de désalignement.
     static String admissionKey(Long gameId, String userId) {
-        return TOKEN_KEY + gameId + "::" + userId;
+//        return TOKEN_KEY + gameId + "::" + userId;
+        return "admission::" + gameId + "::" + userId;
     }
 }
-
-//package com.pfa.fairseatqueue.service;
-
-//import com.pfa.fairseatqueue.domain.QueueStatus;
-//import com.pfa.fairseatqueue.dto.JoinQueueRequestDTO;
-//import com.pfa.fairseatqueue.dto.QueueStatusResponseDTO;
-//import lombok.RequiredArgsConstructor;
-//import lombok.extern.slf4j.Slf4j;
-//import org.springframework.data.redis.core.RedisTemplate;
-//import org.springframework.stereotype.Service;
-
-//@Service
-//@RequiredArgsConstructor
-//@Slf4j
-//public class QueueService {
-//
-//    private final RedisTemplate<String, String> redisTemplate;
-//
-//    private static final String QUEUE_KEY = "queue::game::";
-//    private static final String TOKEN_KEY = "admission::";
-//
-//    public void joinQueue(String userId, JoinQueueRequestDTO request) {
-//        String gameId = String.valueOf(request.gameId());
-//        String queueKey = QUEUE_KEY + gameId;
-//        Double existing = redisTemplate.opsForZSet().score(queueKey, userId);
-//        if (existing != null) return;
-//        redisTemplate.opsForZSet().add(queueKey, userId, System.currentTimeMillis());
-//        log.info("User [{}] joined queue for game #{}", userId, request.gameId());
-//    }
-//
-//    public QueueStatusResponseDTO getQueueStatus(Long gameId, String userId) {
-//        String gameKey = String.valueOf(gameId);
-//        String admissionToken = redisTemplate.opsForValue()
-//                .get(admissionKey(Long.valueOf(gameKey), userId));
-//
-//
-//
-//        if (admissionToken != null) {
-//            return new QueueStatusResponseDTO(userId, gameId, 0L, QueueStatus.RELEASED, admissionToken);
-//        }
-//
-//        Long rank = redisTemplate.opsForZSet().rank(QUEUE_KEY + gameId, userId);
-//        if (rank == null) {
-//            return new QueueStatusResponseDTO(userId, gameId, -1L, QueueStatus.NOT_IN_QUEUE, null);
-//        }
-//        return new QueueStatusResponseDTO(userId, gameId, rank + 1, QueueStatus.WAITING, null);
-//    }
-//
-//    public boolean consumeAdmission(Long gameId, String userId) {
-//        return Boolean.TRUE.equals(redisTemplate.delete(admissionKey(gameId, userId)));
-//    }
-//
-//    static String admissionKey(Long gameId, String userId) {
-//        return TOKEN_KEY + gameId + "::" + userId;
-//    }
-//}

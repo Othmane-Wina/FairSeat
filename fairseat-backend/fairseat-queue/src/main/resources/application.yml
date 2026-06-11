@@ -10,7 +10,7 @@ spring:
       port: ${REDIS_PORT:6379}
       database: 0
   kafka:
-    bootstrap-servers: ${KAFKA_SERVERS:kafka:29092}
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
